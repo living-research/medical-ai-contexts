@@ -116,8 +116,7 @@ def run_benchmark():
                 except Exception:
                     errors += 1
 
-                # Rate limit courtesy
-                time.sleep(0.5)
+                time.sleep(0.2)
 
             accuracy = correct / total if total > 0 else 0
             print(f"  {model_id}: {accuracy:.1%} ({correct}/{total}, {errors} errors)")
