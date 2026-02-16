@@ -3,6 +3,7 @@
 run:
 	@echo "Running experiments..."
 	@for f in experiments/*.py; do \
+		[ -f "$$f" ] || continue; \
 		echo "→ $$f"; \
 		python "$$f"; \
 	done
