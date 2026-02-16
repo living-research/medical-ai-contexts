@@ -24,7 +24,7 @@ if not API_TOKEN:
 
 MODELS = [
     "openai/gpt-4o",
-    "openai/gpt-4.1",
+    "openai/gpt-5",
     "meta/llama-4-scout-17b-16e-instruct",
     "deepseek/deepseek-r1",
     "mistral-ai/mistral-medium-2505",
