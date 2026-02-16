@@ -1,0 +1,157 @@
+"""
+Benchmark medical LLMs on MMLU medical subsets, broken down by specialty.
+
+Measures accuracy per model per medical subject to quantify how performance
+varies across clinical contexts. Uses GitHub Models API for inference.
+"""
+
+import csv
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+import requests
+from datasets import load_dataset
+
+API_URL = "https://models.github.ai/inference/chat/completions"
+API_TOKEN = os.environ.get("GH_MODELS_TOKEN")
+
+if not API_TOKEN:
+    print("GH_MODELS_TOKEN not set", file=sys.stderr)
+    sys.exit(1)
+
+MODELS = [
+    "openai/gpt-4o",
+    "openai/gpt-4.1",
+    "meta/llama-4-scout-17b-16e-instruct",
+    "deepseek/deepseek-r1",
+    "mistral-ai/mistral-medium-2505",
+]
+
+MEDICAL_SUBJECTS = [
+    "clinical_knowledge",
+    "medical_genetics",
+    "anatomy",
+    "professional_medicine",
+    "college_medicine",
+    "college_biology",
+]
+
+ANSWER_MAP = {0: "A", 1: "B", 2: "C", 3: "D"}
+OUTPUT_DIR = Path("data/processed")
+
+
+def query_model(model_id, question, choices):
+    """Send a multiple-choice medical question to a model and return its answer letter."""
+    prompt = f"""{question}
+
+A) {choices[0]}
+B) {choices[1]}
+C) {choices[2]}
+D) {choices[3]}
+
+Reply with ONLY the letter of the correct answer (A, B, C, or D)."""
+
+    response = requests.post(
+        API_URL,
+        headers={
+            "Authorization": f"Bearer {API_TOKEN}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": model_id,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 16,
+            "temperature": 0,
+        },
+        timeout=60,
+    )
+    response.raise_for_status()
+    text = response.json()["choices"][0]["message"]["content"].strip()
+
+    # Extract answer letter from response
+    for char in text.upper():
+        if char in "ABCD":
+            return char
+    return None
+
+
+def run_benchmark():
+    results = []
+
+    for subject in MEDICAL_SUBJECTS:
+        print(f"\n--- {subject} ---")
+        dataset = load_dataset("cais/mmlu", subject, split="test")
+
+        for model_id in MODELS:
+            correct = 0
+            total = 0
+            errors = 0
+
+            for row in dataset:
+                question = row["question"]
+                choices = row["choices"]
+                answer = ANSWER_MAP[row["answer"]]
+
+                try:
+                    prediction = query_model(model_id, question, choices)
+                    if prediction == answer:
+                        correct += 1
+                    total += 1
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 429:
+                        print(f"  Rate limited on {model_id}, waiting 60s...")
+                        time.sleep(60)
+                        try:
+                            prediction = query_model(model_id, question, choices)
+                            if prediction == answer:
+                                correct += 1
+                            total += 1
+                        except Exception:
+                            errors += 1
+                    else:
+                        errors += 1
+                except Exception:
+                    errors += 1
+
+                # Rate limit courtesy
+                time.sleep(0.5)
+
+            accuracy = correct / total if total > 0 else 0
+            print(f"  {model_id}: {accuracy:.1%} ({correct}/{total}, {errors} errors)")
+
+            results.append({
+                "subject": subject,
+                "model": model_id,
+                "correct": correct,
+                "total": total,
+                "errors": errors,
+                "accuracy": round(accuracy, 4),
+            })
+
+    return results
+
+
+def write_results(results):
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # CSV for downstream analysis
+    csv_path = OUTPUT_DIR / "mmlu_by_specialty.csv"
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["subject", "model", "correct", "total", "errors", "accuracy"])
+        writer.writeheader()
+        writer.writerows(results)
+
+    # JSON for programmatic access
+    json_path = OUTPUT_DIR / "mmlu_by_specialty.json"
+    with open(json_path, "w") as f:
+        json.dump(results, f, indent=2)
+
+    print(f"\nResults written to {csv_path} and {json_path}")
+
+
+if __name__ == "__main__":
+    results = run_benchmark()
+    write_results(results)

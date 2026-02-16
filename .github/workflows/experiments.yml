@@ -14,6 +14,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +26,8 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Run experiments
+        env:
+          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
         run: make run
 
       - name: Upload results
