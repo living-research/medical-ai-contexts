@@ -69,17 +69,20 @@ Reply with ONLY the letter of the correct answer (A, B, C, or D)."""
         timeout=60,
     )
     response.raise_for_status()
-    text = response.json()["choices"][0]["message"]["content"].strip()
+    raw = response.json()["choices"][0]["message"]["content"].strip()
 
     # Extract answer letter from response
-    for char in text.upper():
+    parsed = None
+    for char in raw.upper():
         if char in "ABCD":
-            return char
-    return None
+            parsed = char
+            break
+    return parsed, raw
 
 
 def run_benchmark():
     results = []
+    responses = []
 
     for subject in MEDICAL_SUBJECTS:
         print(f"\n--- {subject} ---")
@@ -90,13 +93,15 @@ def run_benchmark():
             total = 0
             errors = 0
 
-            for row in dataset:
+            for qi, row in enumerate(dataset):
                 question = row["question"]
                 choices = row["choices"]
                 answer = ANSWER_MAP[row["answer"]]
 
+                prediction = None
+                raw = ""
                 try:
-                    prediction = query_model(model_id, question, choices)
+                    prediction, raw = query_model(model_id, question, choices)
                     if prediction == answer:
                         correct += 1
                     total += 1
@@ -105,7 +110,7 @@ def run_benchmark():
                         print(f"  Rate limited on {model_id}, waiting 60s...")
                         time.sleep(60)
                         try:
-                            prediction = query_model(model_id, question, choices)
+                            prediction, raw = query_model(model_id, question, choices)
                             if prediction == answer:
                                 correct += 1
                             total += 1
@@ -115,6 +120,16 @@ def run_benchmark():
                         errors += 1
                 except Exception:
                     errors += 1
+
+                responses.append({
+                    "subject": subject,
+                    "model": model_id,
+                    "question_index": qi,
+                    "expected": answer,
+                    "predicted": prediction or "",
+                    "correct": prediction == answer,
+                    "raw_response": raw,
+                })
 
                 time.sleep(0.2)
 
@@ -130,27 +145,35 @@ def run_benchmark():
                 "accuracy": round(accuracy, 4),
             })
 
-    return results
+    return results, responses
 
 
-def write_results(results):
+def write_results(results, responses):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # CSV for downstream analysis
+    # Aggregate accuracy per model per subject
     csv_path = OUTPUT_DIR / "mmlu_by_specialty.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["subject", "model", "correct", "total", "errors", "accuracy"])
         writer.writeheader()
         writer.writerows(results)
 
-    # JSON for programmatic access
     json_path = OUTPUT_DIR / "mmlu_by_specialty.json"
     with open(json_path, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"\nResults written to {csv_path} and {json_path}")
+    # Per-question raw responses for auditability
+    responses_path = OUTPUT_DIR / "mmlu_responses.csv"
+    with open(responses_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=[
+            "subject", "model", "question_index", "expected", "predicted", "correct", "raw_response",
+        ])
+        writer.writeheader()
+        writer.writerows(responses)
+
+    print(f"\nResults written to {csv_path}, {json_path}, {responses_path}")
 
 
 if __name__ == "__main__":
-    results = run_benchmark()
-    write_results(results)
+    results, responses = run_benchmark()
+    write_results(results, responses)
