@@ -33,6 +33,7 @@ jobs:
       - name: Run experiments
         env:
           GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
+          PYTHONUNBUFFERED: "1"
         run: make run
 
       - name: Upload results

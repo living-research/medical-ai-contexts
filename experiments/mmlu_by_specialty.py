@@ -26,17 +26,12 @@ MODELS = [
     "openai/gpt-4o",
     "openai/gpt-5",
     "meta/llama-4-scout-17b-16e-instruct",
-    "deepseek/deepseek-r1",
-    "mistral-ai/mistral-medium-2505",
 ]
 
 MEDICAL_SUBJECTS = [
     "clinical_knowledge",
     "medical_genetics",
     "anatomy",
-    "professional_medicine",
-    "college_medicine",
-    "college_biology",
 ]
 
 ANSWER_MAP = {0: "A", 1: "B", 2: "C", 3: "D"}
