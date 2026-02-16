@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1a1a1a">
-  <title>Project Title — Living Research</title>
+  <title>Medical AI Across Clinical Contexts — Living Research</title>
   <style>
     :root {
       --text: #1c1917;
@@ -180,13 +180,13 @@
 </head>
 <body>
   <header>
-    <h1>[Project Title]</h1>
+    <h1>Medical AI Across Clinical Contexts</h1>
     <p class="meta byline">
-      [Author Name] · <a href="https://github.com/living-research">Living Research</a>
+      Jonas Neves · <a href="https://github.com/living-research">Living Research</a>
     </p>
     <p class="meta">
       Updated <time datetime="2026-02-16">16 February 2026</time>
-      · <a href="https://github.com/living-research/REPO_NAME/actions">CI passing</a>
+      · <a href="https://github.com/living-research/medical-ai-contexts/actions">CI</a>
       · Version 0.1
     </p>
     <span class="badge">In progress</span>
@@ -194,24 +194,25 @@
 
   <section>
     <h2>Question</h2>
-    <p>What specific question does this project investigate?</p>
+    <p>Medical AI models are benchmarked within narrow clinical settings. How much does performance degrade when context shifts — across specialties, demographics, and data availability? Which shifts cause the largest drops, and is the gap closing as new models release?</p>
+    <p class="meta">Motivated by <a href="https://doi.org/10.1038/s41591-025-03645-1">Li et al. (2026)</a>, who propose "context switching" as a paradigm for adaptive medical AI but provide no empirical measurement of the underlying problem.</p>
   </section>
 
   <section>
     <h2>Approach</h2>
-    <p>Description of methodology — what data, what analysis, what constraints.</p>
+    <p>Benchmark publicly available medical LLMs across controlled context shifts using open medical QA datasets and clinical benchmarks. Measure degradation along three axes: specialty (cardiology vs. dermatology vs. psychiatry), demographic (age, sex, comorbidities), and data availability (full workup vs. partial information). Each new model becomes a data point in a longitudinal record.</p>
   </section>
 
   <section>
     <h2>Findings</h2>
-    <p>Results appear here as experiments run. This section updates when the CI pipeline produces new outputs.</p>
+    <p>Results will appear here as experiments run. This section updates when the CI pipeline produces new outputs.</p>
   </section>
 
   <hr>
 
   <footer>
     <p class="meta">
-      Source: <a href="https://github.com/living-research/REPO_NAME">github.com/living-research/REPO_NAME</a><br>
+      Source: <a href="https://github.com/living-research/medical-ai-contexts">github.com/living-research/medical-ai-contexts</a><br>
       Data, code, and full git history available. Contributions welcome.<br>
       Text licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Code licensed <a href="./LICENSE-CODE">MIT</a>.
     </p>

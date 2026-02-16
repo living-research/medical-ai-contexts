@@ -16,3 +16,4 @@
 ## Attribution
 
 All contributors are credited. Significant contributions earn co-authorship.
+When AI tools assist a commit, include a `Co-Authored-By` line — the git history is the authoritative record of who and what contributed.
