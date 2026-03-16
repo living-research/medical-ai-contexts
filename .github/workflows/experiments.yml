@@ -7,13 +7,11 @@ on:
       - 'data/**'
       - 'experiments/**'
       - 'requirements.txt'
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4

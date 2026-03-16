@@ -99,9 +99,15 @@ def run_benchmark():
         dataset = load_dataset("cais/mmlu", subject, split="test")
         all_indices = list(range(len(dataset)))
 
+        # Sample once per subject using the largest sample size across models.
+        # Each model takes a prefix of this shared pool so all models see the
+        # same questions (smaller-budget models see a subset of larger ones).
+        max_sample = min(max(c["sample"] for c in MODELS.values()), len(dataset))
+        shared_pool = sorted(rng.sample(all_indices, max_sample))
+
         for model_id, config in MODELS.items():
             sample_size = min(config["sample"], len(dataset))
-            sampled = sorted(rng.sample(all_indices, sample_size))
+            sampled = shared_pool[:sample_size]
             delay = config["delay"]
 
             correct = 0
@@ -116,6 +122,7 @@ def run_benchmark():
 
                 prediction = None
                 raw = ""
+                is_error = False
                 try:
                     prediction, raw = query_model(model_id, question, choices)
                     if prediction == answer:
@@ -132,12 +139,15 @@ def run_benchmark():
                             total += 1
                         except Exception:
                             errors += 1
+                            is_error = True
                     else:
                         print(f"  HTTP {e.response.status_code} on {model_id}: {e}")
                         errors += 1
+                        is_error = True
                 except Exception as e:
                     print(f"  Error on {model_id}: {e}")
                     errors += 1
+                    is_error = True
 
                 responses.append({
                     "subject": subject,
@@ -145,7 +155,8 @@ def run_benchmark():
                     "question_index": qi,
                     "expected": answer,
                     "predicted": prediction or "",
-                    "correct": prediction == answer,
+                    "correct": prediction == answer if not is_error else False,
+                    "error": is_error,
                     "raw_response": raw,
                 })
 
@@ -185,7 +196,7 @@ def write_results(results, responses):
     responses_path = OUTPUT_DIR / "mmlu_responses.csv"
     with open(responses_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=[
-            "subject", "model", "question_index", "expected", "predicted", "correct", "raw_response",
+            "subject", "model", "question_index", "expected", "predicted", "correct", "error", "raw_response",
         ])
         writer.writeheader()
         writer.writerows(responses)
